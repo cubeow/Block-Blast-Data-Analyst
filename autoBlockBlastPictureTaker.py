@@ -136,20 +136,31 @@ for coords in finalCornerCoords:
         bigList[count] = 0
     count += 1
 print(np.reshape(bigList, (8, -1)))
+#, [1258, 1500, 468, 710], [1258,1500,733,961]
 screenCoords = [[1258, 1500, 215, 445], [1258, 1500, 468, 710], [1258,1500,733,961]]
-for coords in screenCoords:
+for index, coords in enumerate(screenCoords):
     imgBoard = img[coords[0]:coords[1], coords[2]:coords[3]]
-    # cv2.imwrite("temp/imgBoard2.png", imgBoard)
+    rows, cols, _ = imgBoard.shape
+    cv2.imwrite(f"temp/imgBoard1000.png", imgBoard)
+    for i in range(rows):
+        for j in range(cols):
+            if np.linalg.norm(imgBoard[i, j]-[128,73,56]) < 10 or np.linalg.norm(imgBoard[i, j]-[119,60,46]) < 5:
+                imgBoard[i, j] = [0, 0, 0]
+    cv2.imwrite(f"temp/imgBoard1.png", imgBoard)
+
+    kernel = np.ones((5,5), np.uint8)
+    imgBoard = cv2.erode(imgBoard, kernel, iterations=2)
+    cv2.imwrite(f"temp/imgBoard2.png", imgBoard)
     # display("temp/imgBoard2.png")
     imgBoard2 = cv2.cvtColor(imgBoard, cv2.COLOR_BGR2GRAY)
 
-    ret,thresh1 = cv2.threshold(imgBoard2,80,255,cv2.THRESH_BINARY)
-    # cv2.imwrite("temp/imgBoard3.png", thresh1)
+    ret,thresh1 = cv2.threshold(imgBoard2,60,255,cv2.THRESH_BINARY)
+    cv2.imwrite("temp/imgBoard3.png", thresh1)
     # display("temp/imgBoard3.png")
     contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(imgBoard, contours, -1, (0,255,0), 3)
 
-    # cv2.imwrite("temp/imgBoard4.png", imgBoard)
+    cv2.imwrite("temp/imgBoard4.png", imgBoard)
     # display("temp/imgBoard4.png")
 
     simplifiedContours = [i[0][0] for i in contours]
