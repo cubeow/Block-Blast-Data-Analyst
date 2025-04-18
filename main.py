@@ -1,28 +1,25 @@
-import multiprocess.process
 import pyautogui
-import multiprocess
+from multiprocess import Process, Manager, set_start_method, Value
+from ctypes import c_bool
+from calculatePositions import calculate
 import cv2
 import os
 import time
 import numpy as np
-
+from mss import mss
+from PIL import Image
 import os
 from matplotlib import pyplot as plt
 import cv2
 import math
+import ctypes
 
-minX = 0
-minY = 0
-
-def start():
-    global minX
-    global minY
-    # os.system("screencapture temp/screen.png")
+def prepare(blockNumber):
     img = cv2.imread("/Users/sagewong/git/Block-Blast-Data-Analyst/temp/screen.png", 1)
     imgBoard = img[360:1190, 173:1000]
     imgBoard = cv2.cvtColor(imgBoard, cv2.COLOR_BGR2GRAY)
 
-    import numpy as np
+
     rows, cols = imgBoard.shape
     # print(f"rows: {rows}, columns: {cols}")
     x = np.zeros(rows*cols)
@@ -58,7 +55,6 @@ def start():
                         corners.append([i, j])
                 else:
                     corners.append([i, j])
-
     # for i in corners:
     #     imgBoard[i[0], i[1]] = 255
 
@@ -108,7 +104,6 @@ def start():
     output = duplicateRow(output.copy(), "y", 1, min(distances))
     output = duplicateRow(output.copy(), "x", 1, min(distances))
     output = duplicateRow(output.copy(), "x", -1, min(distances))
-
     # print(output)
     # for i in output:
         # imgBoard[int(i[1]), int(i[0])] = 255
@@ -128,7 +123,13 @@ def start():
     #print(finalCornerCoords)
 
     os.system("screencapture temp/screen2.png")
-    screenCoord = [1258, 1500, 215, 445]
+    if blockNumber == 1:
+        screenCoord = [1258, 1500, 215, 445]
+    if blockNumber == 2:
+        screenCoord = [1258, 1500, 468, 710]
+    if blockNumber == 3:
+        screenCoord = [1258,1500,733,961]
+    
     newImg = cv2.imread("temp/screen2.png")
     newImg = newImg[screenCoord[0]:screenCoord[1], screenCoord[2]:screenCoord[3]]
 
@@ -180,51 +181,25 @@ def start():
     # print(minYDistance)
     distance = min(minXDistance, minYDistance)
     minX = min([i[0][0][0] for i in contours])
-    print("Minimum x found: " + str(minX))
+    # print("Minimum x found: " + str(minX))
     maxX = max([i[0][0][0] for i in contours])
     # print("Maximum x found: " + str(maxX))
     minY = min([i[0][0][1] for i in contours])
-    print("Minimum y found: " + str(minY))
+    # print("Minimum y found: " + str(minY))
     maxY = max([i[0][0][1] for i in contours])
     # print("Maximum y found: " + str(maxY))
-    with open("coords.txt", "w") as f:
-        f.write(f"{minX},{minY}")
+    hi = np.zeros((round((maxY-minY)/distance)+1,round((maxX-minX)/distance)+1))
+    for x in range(round((maxX-minX)/distance)+1):
+        for y in range(round((maxY-minY)/distance)+1):
+            xVal = minX + x*distance
+            yVal = minY + y*distance
+            for i in simplifiedContours:
+                if math.sqrt((xVal-i[0])**2 + (yVal-i[1])**2) < 5:
+                    hi[y][x] = 1
+                    break
+    return minX, minY, screenCoord, hi
 
-mouseDist = -20
-
-screenCoord = [1258, 1500, 215, 445]
-
-def move(start_event):
-    with open("coords.txt", "r") as f:
-        minX, minY = map(int, f.read().split(","))
-
-    print("Starting Program")
-    #Save Unmoved Board
-    os.system("screencapture temp/zerothImage.png")
-    zerothImage = cv2.imread("temp/zerothImage.png")
-    zerothImage = zerothImage[380:1490, 100:1000]
-    cv2.imwrite("image0.png", zerothImage)
-
-    newMinX = minX+screenCoord[2]
-    newMinY = minY+screenCoord[0]
-
-    # Drags it 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
-    pyautogui.click()
-    start_event.set()
-    pyautogui.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
-
-    # Drags it a second time
-    pyautogui.moveTo(newMinX/2,newMinY/2)
-    start_event.set()
-    pyautogui.dragTo(newMinX/2-2*mouseDist, newMinY/2-2*mouseDist, 1, button="left")
-
-def screenshot(start_event, filePath, waitingTime):
-    start_event.wait()
-
-    time.sleep(waitingTime)
-    print(f"Screenshot saved as {filePath}")
-
+def screenshot(filePath):
     os.system("screencapture temp/secondImage.png")
     secondImg = cv2.imread("temp/secondImage.png")
 
@@ -233,60 +208,91 @@ def screenshot(start_event, filePath, waitingTime):
     cv2.imwrite(f"{filePath}.png", secondImg)
 
 def compareTwoImages(im1, im2):
-    for row in range(im1.shape[0]):
+    for row in range(int(im1.shape[0]*0.5), im1.shape[0]):
         for col in range(im2.shape[1]):
-            if np.linalg.norm(im1[row][col]- im2[row][col])>4:
+            if np.linalg.norm(im1[row][col]- im2[row][col])>0:
                 return row, col
-if __name__ == "__main__":
-    multiprocess.set_start_method('spawn')
-    start_event = multiprocess.Event()
-    startProcess = multiprocess.Process(target=start)
-    moveBlockProcess = multiprocess.Process(target=move,args=(start_event,))
-    screenshotProcess = multiprocess.Process(target=screenshot,args=(start_event, "image1", 1.2))
-    screenshotProcess2 = multiprocess.Process(target=screenshot,args=(start_event, "image2", 0.75))
-    startProcess.start()
-    startProcess.join()
 
-    moveBlockProcess.start()
-    screenshotProcess.start()
-    screenshotProcess.join()
+def dragBlockTo(blockNumber, Xx, Yy):
+    screenshot("temp/image0")
 
-    screenshotProcess2.start()
-    screenshotProcess2.join()
-    
-    row, col = compareTwoImages(cv2.imread("image0.png"), cv2.imread("image1.png"))
-    print(row)
-    print(col)
-    row2, col2 = compareTwoImages(cv2.imread("image0.png"), cv2.imread("image2.png"))
-    print(row2)
-    print(col2)
-    with open("coords.txt", "r") as f:
-        minX, minY = map(int, f.read().split(","))
-    mouseXPerPixel = -mouseDist/abs(row2-row)
-    mouseYPerPixel = -mouseDist/abs(col2-col)
+    minX, minY, screenCoord, blockShape = prepare(blockNumber)
+    mouseDist = -30
 
-    Xx = 7
-    Yy = 0
-
-    desiredPosition = [0+Yy*97, 95+Xx*97]
-
-    initialHoldY = 2.284*(minX+screenCoord[2])-417.45 - 100
-    initialHoldX = 2.18182*(minY+screenCoord[0])-1877.27273 - 380
-
-    print(f"initialHoldY: {initialHoldY}")
-    print(f"initialHoldX: {initialHoldX}")
-
-    XdistanceToTravel = (desiredPosition[0] - initialHoldX)*mouseXPerPixel
-    YdistanceToTravel = (desiredPosition[1] - initialHoldY)*mouseYPerPixel
-
-    print(f"XdistanceToTravel: {XdistanceToTravel}")
-    print(f"YdistanceToTravel: {YdistanceToTravel}")
+    count = 0
+    for i in blockShape[0]:
+        if i == 0:
+            count += 1
+        if i == 1:
+            break
+    Xx += count
 
     newMinX = minX+screenCoord[2]
     newMinY = minY+screenCoord[0]
 
-
+    # print(f"NOT HOLD min x: {newMinX}")
+    # print(f"NOT HOLD min y: {newMinY}")
 
     pyautogui.moveTo(newMinX/2,newMinY/2)
-    time.sleep(0.5)
-    pyautogui.drag(YdistanceToTravel, XdistanceToTravel, 1, button="left")
+
+    time.sleep(0.1)
+
+    pyautogui.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
+    screenshot("temp/image1")
+
+    pyautogui.moveTo(newMinX/2,newMinY/2)
+    pyautogui.mouseDown()
+    screenshot("temp/image05")
+    pyautogui.drag(0, 100, 0.2, button="left", mouseDownUp=False)
+    pyautogui.mouseUp()
+    initialHoldY, initialHoldX = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image05.png"))
+    initialHoldX += 100
+    initialHoldY += 380
+    # print(f"START COORDINATE: {initialHoldX}, {initialHoldY}")
+
+    pyautogui.mouseUp()
+
+    time.sleep(0.1)
+
+    pyautogui.moveTo(newMinX/2,newMinY/2)
+
+    row, col = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image1.png"))
+
+    row += 380
+    col += 100
+
+    # print(f"HOLD END x: {col}")
+    # print(f"HOLD END y: {row}")
+
+    desiredPosition = [200+Xx*97, 386+Yy*97]
+
+    # print(f"HOLD DISTANCE x: {abs(initialHoldX-col)}")
+    # print(f"HOLD DISTANCE y: {abs(initialHoldY-row)}")
+
+
+    # print(f"GOAL COORDINATE: {desiredPosition}")
+
+    mouseXPerPixel = mouseDist/abs(initialHoldX-col)
+    mouseYPerPixel = mouseDist/abs(initialHoldY-row)
+
+    # print(f"DISTANCE TO TRAVEL x: {desiredPosition[0] - initialHoldX}")
+    # print(f"DISTANCE TO TRAVEL y: {desiredPosition[1] - initialHoldY}")
+
+    XdistanceToTravel = (desiredPosition[0] - initialHoldX)*mouseXPerPixel
+    YdistanceToTravel = (desiredPosition[1] - initialHoldY)*mouseYPerPixel
+
+    pyautogui.moveTo(newMinX/2,newMinY/2)
+    time.sleep(0.1)
+    pyautogui.drag(-XdistanceToTravel, -YdistanceToTravel, 1, button="left")
+    pyautogui.mouseUp()
+
+output, blocks = calculate()
+pyautogui.moveTo(100, 100)
+pyautogui.click()
+print(output)
+for i in output:
+    blockIndex = 1
+    for index, block in enumerate(blocks):
+        if np.array_equal(block, i[0]):
+            blockIndex = index
+    dragBlockTo(blockIndex+1, i[2], i[1])

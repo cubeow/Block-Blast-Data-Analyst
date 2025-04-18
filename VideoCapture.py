@@ -1,28 +1,24 @@
-import multiprocess.process
 import pyautogui
-import multiprocess
+from multiprocess import Process, Manager, set_start_method, Value
+from ctypes import c_bool
 import cv2
 import os
 import time
 import numpy as np
-
+from mss import mss
+from PIL import Image
 import os
 from matplotlib import pyplot as plt
 import cv2
 import math
+import ctypes
 
-minX = 0
-minY = 0
-
-def start():
-    global minX
-    global minY
-    # os.system("screencapture temp/screen.png")
+def prepare():
     img = cv2.imread("/Users/sagewong/git/Block-Blast-Data-Analyst/temp/screen.png", 1)
     imgBoard = img[360:1190, 173:1000]
     imgBoard = cv2.cvtColor(imgBoard, cv2.COLOR_BGR2GRAY)
 
-    import numpy as np
+
     rows, cols = imgBoard.shape
     # print(f"rows: {rows}, columns: {cols}")
     x = np.zeros(rows*cols)
@@ -58,7 +54,6 @@ def start():
                         corners.append([i, j])
                 else:
                     corners.append([i, j])
-
     # for i in corners:
     #     imgBoard[i[0], i[1]] = 255
 
@@ -108,7 +103,6 @@ def start():
     output = duplicateRow(output.copy(), "y", 1, min(distances))
     output = duplicateRow(output.copy(), "x", 1, min(distances))
     output = duplicateRow(output.copy(), "x", -1, min(distances))
-
     # print(output)
     # for i in output:
         # imgBoard[int(i[1]), int(i[0])] = 255
@@ -187,44 +181,36 @@ def start():
     print("Minimum y found: " + str(minY))
     maxY = max([i[0][0][1] for i in contours])
     # print("Maximum y found: " + str(maxY))
-    with open("coords.txt", "w") as f:
-        f.write(f"{minX},{minY}")
 
-mouseDist = -20
+    return minX, minY, screenCoord
 
-screenCoord = [1258, 1500, 215, 445]
+def videoCapture(shared_data, fileName):
+    
+    bounding_box = {'top': 380/2, 'left': 100/2, 'width': (1000-100)/2, 'height': (1490-380)/2}
 
-def move(start_event):
-    with open("coords.txt", "r") as f:
-        minX, minY = map(int, f.read().split(","))
+    sct = mss()
 
-    print("Starting Program")
-    #Save Unmoved Board
-    os.system("screencapture temp/zerothImage.png")
-    zerothImage = cv2.imread("temp/zerothImage.png")
-    zerothImage = zerothImage[380:1490, 100:1000]
-    cv2.imwrite("image0.png", zerothImage)
+    allImgs = []
+    while True:
+        if shared_data.mouseHolding == False:
+            cv2.imwrite(f"temp/{fileName}.png", np.asarray(allImgs[-9]))
+            break
+        sct_img = sct.grab(bounding_box)
+        allImgs.append(sct_img)
 
+def calibrate(minX, minY, screenCoord, mouseDist, click, shared_data):
     newMinX = minX+screenCoord[2]
     newMinY = minY+screenCoord[0]
-
-    # Drags it 
     pyautogui.moveTo(newMinX/2,newMinY/2)
-    pyautogui.click()
-    start_event.set()
+    if click:
+        pyautogui.click()
+
+    time.sleep(0.1)
+
     pyautogui.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
+    shared_data.mouseHolding = not shared_data.mouseHolding
 
-    # Drags it a second time
-    pyautogui.moveTo(newMinX/2,newMinY/2)
-    start_event.set()
-    pyautogui.dragTo(newMinX/2-2*mouseDist, newMinY/2-2*mouseDist, 1, button="left")
-
-def screenshot(start_event, filePath, waitingTime):
-    start_event.wait()
-
-    time.sleep(waitingTime)
-    print(f"Screenshot saved as {filePath}")
-
+def screenshot(filePath):
     os.system("screencapture temp/secondImage.png")
     secondImg = cv2.imread("temp/secondImage.png")
 
@@ -232,61 +218,33 @@ def screenshot(start_event, filePath, waitingTime):
 
     cv2.imwrite(f"{filePath}.png", secondImg)
 
-def compareTwoImages(im1, im2):
-    for row in range(im1.shape[0]):
-        for col in range(im2.shape[1]):
-            if np.linalg.norm(im1[row][col]- im2[row][col])>4:
-                return row, col
 if __name__ == "__main__":
-    multiprocess.set_start_method('spawn')
-    start_event = multiprocess.Event()
-    startProcess = multiprocess.Process(target=start)
-    moveBlockProcess = multiprocess.Process(target=move,args=(start_event,))
-    screenshotProcess = multiprocess.Process(target=screenshot,args=(start_event, "image1", 1.2))
-    screenshotProcess2 = multiprocess.Process(target=screenshot,args=(start_event, "image2", 0.75))
-    startProcess.start()
-    startProcess.join()
+    try:
+        set_start_method('spawn')
+    except RuntimeError:
+        pass
+    minX, minY, screenCoord = prepare()
 
-    moveBlockProcess.start()
-    screenshotProcess.start()
-    screenshotProcess.join()
+    with Manager() as manager:
+        shared_data = manager.Namespace()
+        shared_data.mouseHolding = True  # Shared boolean
 
-    screenshotProcess2.start()
-    screenshotProcess2.join()
-    
-    row, col = compareTwoImages(cv2.imread("image0.png"), cv2.imread("image1.png"))
-    print(row)
-    print(col)
-    row2, col2 = compareTwoImages(cv2.imread("image0.png"), cv2.imread("image2.png"))
-    print(row2)
-    print(col2)
-    with open("coords.txt", "r") as f:
-        minX, minY = map(int, f.read().split(","))
-    mouseXPerPixel = -mouseDist/abs(row2-row)
-    mouseYPerPixel = -mouseDist/abs(col2-col)
+        # initial screenshot for comparison
+        screenshot("image0")
 
-    Xx = 7
-    Yy = 0
-
-    desiredPosition = [0+Yy*97, 95+Xx*97]
-
-    initialHoldY = 2.284*(minX+screenCoord[2])-417.45 - 100
-    initialHoldX = 2.18182*(minY+screenCoord[0])-1877.27273 - 380
-
-    print(f"initialHoldY: {initialHoldY}")
-    print(f"initialHoldX: {initialHoldX}")
-
-    XdistanceToTravel = (desiredPosition[0] - initialHoldX)*mouseXPerPixel
-    YdistanceToTravel = (desiredPosition[1] - initialHoldY)*mouseYPerPixel
-
-    print(f"XdistanceToTravel: {XdistanceToTravel}")
-    print(f"YdistanceToTravel: {YdistanceToTravel}")
-
-    newMinX = minX+screenCoord[2]
-    newMinY = minY+screenCoord[0]
-
-
-
-    pyautogui.moveTo(newMinX/2,newMinY/2)
-    time.sleep(0.5)
-    pyautogui.drag(YdistanceToTravel, XdistanceToTravel, 1, button="left")
+        # First calibration process
+        videoCaptureProcess = Process(target=videoCapture, args=(shared_data, "image1"))
+        calibrateProcess = Process(target=calibrate, args=(minX, minY, screenCoord, -20, True, shared_data))
+        videoCaptureProcess.start()
+        calibrateProcess.start()
+        videoCaptureProcess.join()
+        calibrateProcess.join()
+        
+        shared_data.mouseHolding = True  # Shared boolean
+        # Second calibration process
+        videoCaptureProcess2 = Process(target=videoCapture, args=(shared_data, "image2"))
+        calibrateProcess2 = Process(target=calibrate, args=(minX, minY, screenCoord, -40, False, shared_data))
+        videoCaptureProcess2.start()
+        calibrateProcess2.start()
+        videoCaptureProcess2.join()
+        calibrateProcess2.join()
