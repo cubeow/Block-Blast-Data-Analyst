@@ -3,6 +3,8 @@ from matplotlib import pyplot as plt
 import cv2
 import math
 import copy
+import numpy as np
+import cProfile
 
 def calculate():
 
@@ -224,30 +226,55 @@ def calculate():
         blocks[fi] = temp
         return blocks
 
-    def waysToFit(figure, board):
-        firstFit = []
-        for rowNumber in range(board.shape[0]):
-            # print(board[rowNumber])
-            for cellNumber in range(board.shape[1]):
-                # print(board[rowNumber][cellNumber])
-                cellValue = board[rowNumber][cellNumber]
-                if (cellValue == 1 and figure[0][0] == 0) or (cellValue == 0 and figure[0][0] == 1) or (cellValue == 0 and figure[0][0] == 0):
-                    canFit = True
-                    if cellNumber + figure.shape[1] > board.shape[0]:
-                        canFit = False
-                        break
-                    if rowNumber + figure.shape[0] > board.shape[1]:
-                        canFit = False
-                        break
-                    for figureRow in range(figure.shape[0]):
-                        for figureColumn in range(figure.shape[1]):
-                            if figure[figureRow][figureColumn] == 1:
-                                if board[rowNumber + figureRow][cellNumber + figureColumn] == 1:
-                                    canFit = False
-                                    break
-                    if canFit:
-                        firstFit.append([figure, rowNumber, cellNumber])
-        return firstFit
+    def waysToFit(figure, board, optimized=False):
+        if optimized==False:
+            firstFit = []
+            for rowNumber in range(board.shape[0]):
+                # print(board[rowNumber])
+                for cellNumber in range(board.shape[1]):
+                    # print(board[rowNumber][cellNumber])
+                    cellValue = board[rowNumber][cellNumber]
+                    if (cellValue == 1 and figure[0][0] == 0) or (cellValue == 0 and figure[0][0] == 1) or (cellValue == 0 and figure[0][0] == 0):
+                        canFit = True
+                        if cellNumber + figure.shape[1] > board.shape[0]:
+                            canFit = False
+                            break
+                        if rowNumber + figure.shape[0] > board.shape[1]:
+                            canFit = False
+                            break
+                        for figureRow in range(figure.shape[0]):
+                            for figureColumn in range(figure.shape[1]):
+                                if figure[figureRow][figureColumn] == 1:
+                                    if board[rowNumber + figureRow][cellNumber + figureColumn] == 1:
+                                        canFit = False
+                                        break
+                        if canFit:
+                            firstFit.append([figure, rowNumber, cellNumber])
+            return firstFit
+        else:
+            howManyFits = 0
+            for rowNumber in range(board.shape[0]):
+                # print(board[rowNumber])
+                for cellNumber in range(board.shape[1]):
+                    # print(board[rowNumber][cellNumber])
+                    cellValue = board[rowNumber][cellNumber]
+                    if (cellValue == 1 and figure[0][0] == 0) or (cellValue == 0 and figure[0][0] == 1) or (cellValue == 0 and figure[0][0] == 0):
+                        canFit = True
+                        if cellNumber + figure.shape[1] > board.shape[0]:
+                            canFit = False
+                            break
+                        if rowNumber + figure.shape[0] > board.shape[1]:
+                            canFit = False
+                            break
+                        for figureRow in range(figure.shape[0]):
+                            for figureColumn in range(figure.shape[1]):
+                                if figure[figureRow][figureColumn] == 1:
+                                    if board[rowNumber + figureRow][cellNumber + figureColumn] == 1:
+                                        canFit = False
+                                        break
+                        if canFit:
+                            howManyFits += 1
+            return howManyFits
     def updateBoard(board, figure, x, y):
         board = board.copy()
         clearedRow = False
@@ -298,7 +325,10 @@ def calculate():
                     for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 2], board2):
                         board3, clearedRow = updateBoard(board2, permutation[blockIndex + 2], rowToFit, colToFit)
                         pathTaken.append([permutation[blockIndex + 2], rowToFit, colToFit, clearedRow])
+                        pathTaken.append(board3)
                         workingPaths.append(copy.deepcopy(pathTaken))
+                        pathTaken = [pathTaken[0], pathTaken[1]]
+
                     pathTaken = [pathTaken[0]]
                 pathTaken = []
             return workingPaths
@@ -309,6 +339,7 @@ def calculate():
                 for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 1], board1):
                     board2, clearedRow = updateBoard(board1, permutation[blockIndex + 1], rowToFit, colToFit)
                     pathTaken.append([permutation[blockIndex + 1], rowToFit, colToFit, clearedRow])
+                    pathTaken.append(board2)
                     workingPaths.append(copy.deepcopy(pathTaken))
                     pathTaken = [pathTaken[0]]
                 pathTaken=[]
@@ -317,6 +348,7 @@ def calculate():
             for _, rowToFit, colToFit in waysToFit(permutation[blockIndex], board):
                 board1, clearedRow = updateBoard(board, permutation[blockIndex], rowToFit, colToFit)
                 pathTaken.append([permutation[blockIndex], rowToFit, colToFit, clearedRow])
+                pathTaken.append(board1)
                 workingPaths.append(copy.deepcopy(pathTaken))
                 pathTaken = []
             return workingPaths
@@ -327,12 +359,106 @@ def calculate():
             pass
         results = tryOutAllMethods(board, copy.deepcopy(allPermutations[index]), 0)
         if results:
-            allSolutions += results[0], blocks, coordsUsed
+            allSolutions.append(results)
         # if len([i for i in results if i[2][3] == True]) > 0:
         #     return [i for i in results if i[2][3] == True][0]
         # else:
         #     pass
         #     # print(results)
-    return results, blocks, coordsUsed
-output, blocks, blockNum = calculate()
-print(output)
+    return allSolutions, blocks, coordsUsed
+def bestOption():
+    def waysToFit(figure, board, optimized=False):
+            if optimized==False:
+                firstFit = []
+                for rowNumber in range(board.shape[0]):
+                    # print(board[rowNumber])
+                    for cellNumber in range(board.shape[1]):
+                        # print(board[rowNumber][cellNumber])
+                        cellValue = board[rowNumber][cellNumber]
+                        if (cellValue == 1 and figure[0][0] == 0) or (cellValue == 0 and figure[0][0] == 1) or (cellValue == 0 and figure[0][0] == 0):
+                            canFit = True
+                            if cellNumber + figure.shape[1] > board.shape[0]:
+                                canFit = False
+                                break
+                            if rowNumber + figure.shape[0] > board.shape[1]:
+                                canFit = False
+                                break
+                            for figureRow in range(figure.shape[0]):
+                                for figureColumn in range(figure.shape[1]):
+                                    if figure[figureRow][figureColumn] == 1:
+                                        if board[rowNumber + figureRow][cellNumber + figureColumn] == 1:
+                                            canFit = False
+                                            break
+                            if canFit:
+                                firstFit.append([figure, rowNumber, cellNumber])
+                return firstFit
+            else:
+                howManyFits = 0
+                for rowNumber in range(board.shape[0]):
+                    # print(board[rowNumber])
+                    for cellNumber in range(board.shape[1]):
+                        # print(board[rowNumber][cellNumber])
+                        cellValue = board[rowNumber][cellNumber]
+                        if (cellValue == 1 and figure[0][0] == 0) or (cellValue == 0 and figure[0][0] == 1) or (cellValue == 0 and figure[0][0] == 0):
+                            canFit = True
+                            if cellNumber + figure.shape[1] > board.shape[0]:
+                                canFit = False
+                                break
+                            if rowNumber + figure.shape[0] > board.shape[1]:
+                                canFit = False
+                                break
+                            for figureRow in range(figure.shape[0]):
+                                for figureColumn in range(figure.shape[1]):
+                                    if figure[figureRow][figureColumn] == 1:
+                                        if board[rowNumber + figureRow][cellNumber + figureColumn] == 1:
+                                            canFit = False
+                                            break
+                            if canFit:
+                                howManyFits += 1
+                return howManyFits
+    output, blocks, blockNum = calculate()
+    print(sum(len(row) for row in output))
+    firstMoveClear = []
+    secondMoveClear = []
+    thirdMoveClear = []
+    for permutation in output:
+        for solution in permutation:
+            if solution[0][3] == True:
+                firstMoveClear.append(solution)
+            elif solution[1][3] == True:
+                secondMoveClear.append(solution)
+            elif solution[2][3] == True:
+                thirdMoveClear.append(solution)
+
+    def assignPoints(board):
+        num2x2Fit = waysToFit(np.array([[1, 1], [1, 1]]), np.array(board), True)
+        num3x3Fit = waysToFit(np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]]), np.array(board), True)
+        num5x1Fit = waysToFit(np.array([[1], [1], [1], [1], [1]]), np.array(board), True)
+        num1x5Fit = waysToFit(np.array([[1, 1, 1, 1, 1]]), np.array(board), True)
+        return num2x2Fit*2 + num3x3Fit*4 + num5x1Fit*10 + num1x5Fit*10
+    maxScore = 0
+    bestArray = []
+    for i in thirdMoveClear:
+        score = assignPoints(i[3])
+        if score > maxScore:
+            maxScore = score
+            bestArray = i
+    if bestArray != []:
+        return bestArray
+    for i in secondMoveClear:
+        score = assignPoints(i[3])
+        if score > maxScore:
+            maxScore = score
+            bestArray = i
+    if bestArray != []:
+        return bestArray
+    for i in firstMoveClear:
+        score = assignPoints(i[3])
+        if score > maxScore:
+            maxScore = score
+            bestArray = i
+    if bestArray != []:
+        return bestArray
+    return output[0][0]
+
+print(bestOption())
