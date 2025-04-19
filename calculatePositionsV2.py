@@ -366,7 +366,7 @@ def calculate():
         #     pass
         #     # print(results)
     return allSolutions, blocks, coordsUsed
-def bestOption():
+def bestOption(output):
     def waysToFit(figure, board, optimized=False):
             if optimized==False:
                 firstFit = []
@@ -416,7 +416,6 @@ def bestOption():
                             if canFit:
                                 howManyFits += 1
                 return howManyFits
-    output, blocks, blockNum = calculate()
     print(sum(len(row) for row in output))
     firstMoveClear = []
     secondMoveClear = []
@@ -460,5 +459,3 @@ def bestOption():
     if bestArray != []:
         return bestArray
     return output[0][0]
-
-print(bestOption())

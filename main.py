@@ -1,7 +1,7 @@
 import pyautogui
 from multiprocess import Process, Manager, set_start_method, Value
 from ctypes import c_bool
-from calculatePositions import calculate
+from calculatePositions import calculate, bestOption
 import cv2
 import os
 import time
@@ -203,7 +203,7 @@ def screenshot(filePath):
     os.system("screencapture temp/secondImage.png")
     secondImg = cv2.imread("temp/secondImage.png")
 
-    secondImg = secondImg[380:1490,187:1200]
+    secondImg = secondImg[380:1490,100:1200]
 
     cv2.imwrite(f"{filePath}.png", secondImg)
 
@@ -250,7 +250,7 @@ def dragBlockTo(blockNumber, Xx, Yy):
     pyautogui.drag(0, 100, 0.1, button="left", mouseDownUp=False)
     pyautogui.mouseUp()
     initialHoldY, initialHoldX = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image05.png"))
-    initialHoldX += 187
+    initialHoldX += 100
     initialHoldY += 380
     print(f"START COORDINATE: {initialHoldX}, {initialHoldY}")
 
@@ -263,7 +263,7 @@ def dragBlockTo(blockNumber, Xx, Yy):
     row, col = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image1.png"))
 
     row += 380
-    col += 187
+    col += 100
 
     print(f"HOLD END x: {col}")
     print(f"HOLD END y: {row}")
@@ -290,26 +290,27 @@ def dragBlockTo(blockNumber, Xx, Yy):
     pyautogui.drag(-XdistanceToTravel, -YdistanceToTravel, 0.2, button="left")
     pyautogui.mouseUp()
 
+def elements_equal(a, b):
+    return np.array_equal(a[0], b[0]) and a[1] == b[1]
+
 pyautogui.moveTo(100, 100)
 pyautogui.click()
+moveToReset = 3
 while True:
     try:
-        output, blocks, blockNum = calculate()
+        output, blocks, coordsUsed = calculate()
     except:
         print("YOU ARE COOKED")
         break
-    print(output)
-    dealWithDoubles = 0
-    for index, i in enumerate(output):
-        
-        print([j[1] for j in blockNum if np.array_equal(j[0], i[0])][0])
-        dragBlockTo([j[1] for j in blockNum if np.array_equal(j[0], i[0])][0] + dealWithDoubles, i[2], i[1])
-        if i[3] == True:
+    output2 = bestOption(output, moveToReset)
+    print(output2[:-1])
+    for index, i in enumerate(output2[:-1]):
+        print([j[1] for j in coordsUsed if np.array_equal(j[0], i[0])][0])
+        dragBlockTo([j[1] for j in coordsUsed if np.array_equal(j[0], i[0])][0], i[2], i[1])
+        if i[3] > 0:
             time.sleep(2)
-        if len([j[1] for j in blockNum if np.array_equal(j[0], i[0])]) > 1 and dealWithDoubles == 0:
-            dealWithDoubles = 1
-        elif len([j[1] for j in blockNum if np.array_equal(j[0], i[0])]) > 1 and dealWithDoubles == 1:
-            dealWithDoubles = 0
+            moveToReset = index
         
+        coordsUsed.pop(next(k for k, item in enumerate(coordsUsed) if elements_equal(item, [j for j in coordsUsed if np.array_equal(j[0], i[0])][0])))
 
 # dragBlockTo(2, 7, 0)
