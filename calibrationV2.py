@@ -202,21 +202,25 @@ def screenshot(filePath):
     os.system("screencapture temp/secondImage.png")
     secondImg = cv2.imread("temp/secondImage.png")
 
-    secondImg = secondImg[380:1490, 100:1000]
+    secondImg = secondImg[380:1490, 187:1200]
 
     cv2.imwrite(f"{filePath}.png", secondImg)
 
 def compareTwoImages(im1, im2):
-    for row in range(int(im1.shape[0]*0.5), im1.shape[0]):
+    differentOnes = []
+    for row in range(int(im1.shape[0]*0.3), im1.shape[0]):
         for col in range(im2.shape[1]):
             if np.linalg.norm(im1[row][col]- im2[row][col])>0:
-                return row, col
+                differentOnes.append([row, col])
+                if len([i for i in differentOnes if i[0] == row]) > 75:
+                    print([i for i in differentOnes if i[0] == row])
+                    return [i for i in differentOnes if i[0] == row][0]
 
 def dragBlockTo(blockNumber, Xx, Yy):
     screenshot("temp/image0")
 
     minX, minY, screenCoord, blockShape = prepare(blockNumber)
-    mouseDist = -30
+    mouseDist = -40
 
     count = 0
     for i in blockShape[0]:
@@ -229,8 +233,8 @@ def dragBlockTo(blockNumber, Xx, Yy):
     newMinX = minX+screenCoord[2]
     newMinY = minY+screenCoord[0]
 
-    # print(f"NOT HOLD min x: {newMinX}")
-    # print(f"NOT HOLD min y: {newMinY}")
+    print(f"NOT HOLD min x: {newMinX}")
+    print(f"NOT HOLD min y: {newMinY}")
 
     pyautogui.moveTo(newMinX/2,newMinY/2)
 
@@ -247,9 +251,9 @@ def dragBlockTo(blockNumber, Xx, Yy):
     pyautogui.drag(0, 100, 0.2, button="left", mouseDownUp=False)
     pyautogui.mouseUp()
     initialHoldY, initialHoldX = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image05.png"))
-    initialHoldX += 100
+    initialHoldX += 187
     initialHoldY += 380
-    # print(f"START COORDINATE: {initialHoldX}, {initialHoldY}")
+    print(f"START COORDINATE: {initialHoldX}, {initialHoldY}")
 
     pyautogui.mouseUp()
 
@@ -260,24 +264,24 @@ def dragBlockTo(blockNumber, Xx, Yy):
     row, col = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image1.png"))
 
     row += 380
-    col += 100
+    col += 187
 
-    # print(f"HOLD END x: {col}")
-    # print(f"HOLD END y: {row}")
+    print(f"HOLD END x: {col}")
+    print(f"HOLD END y: {row}")
 
     desiredPosition = [200+Xx*97, 386+Yy*97]
 
-    # print(f"HOLD DISTANCE x: {abs(initialHoldX-col)}")
-    # print(f"HOLD DISTANCE y: {abs(initialHoldY-row)}")
+    print(f"HOLD DISTANCE x: {abs(initialHoldX-col)}")
+    print(f"HOLD DISTANCE y: {abs(initialHoldY-row)}")
 
 
-    # print(f"GOAL COORDINATE: {desiredPosition}")
+    print(f"GOAL COORDINATE: {desiredPosition}")
 
     mouseXPerPixel = mouseDist/abs(initialHoldX-col)
     mouseYPerPixel = mouseDist/abs(initialHoldY-row)
 
-    # print(f"DISTANCE TO TRAVEL x: {desiredPosition[0] - initialHoldX}")
-    # print(f"DISTANCE TO TRAVEL y: {desiredPosition[1] - initialHoldY}")
+    print(f"DISTANCE TO TRAVEL x: {desiredPosition[0] - initialHoldX}")
+    print(f"DISTANCE TO TRAVEL y: {desiredPosition[1] - initialHoldY}")
 
     XdistanceToTravel = (desiredPosition[0] - initialHoldX)*mouseXPerPixel
     YdistanceToTravel = (desiredPosition[1] - initialHoldY)*mouseYPerPixel
@@ -287,4 +291,4 @@ def dragBlockTo(blockNumber, Xx, Yy):
     pyautogui.drag(-XdistanceToTravel, -YdistanceToTravel, 1, button="left")
     pyautogui.mouseUp()
 
-dragBlockTo(2, 3, 3)
+dragBlockTo(2, 3, 1)

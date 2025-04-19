@@ -140,72 +140,73 @@ def calculate():
     print(board)
     blocks = []
     #, [1258, 1500, 468, 710], [1258,1500,733,961]
-    screenCoords = [[1258, 1500, 215, 445], [1258, 1500, 468, 710], [1258,1500,733,961]]
+    screenCoords = [[1258, 1500, 215, 445], [1258, 1500, 468, 710],  [1258,1500,733,961]]
+    coordsUsed = []
     for index, coords in enumerate(screenCoords):
         imgBoard = img[coords[0]:coords[1], coords[2]:coords[3]]
         rows, cols, _ = imgBoard.shape
-        cv2.imwrite(f"temp/imgBoard1000.png", imgBoard)
+        # cv2.imwrite(f"temp/imgBoard1000.png", imgBoard)
         for i in range(rows):
             for j in range(cols):
                 if np.linalg.norm(imgBoard[i, j]-[128,73,56]) < 10 or np.linalg.norm(imgBoard[i, j]-[119,60,46]) < 10:
                     imgBoard[i, j] = [0, 0, 0]
-        cv2.imwrite(f"temp/imgBoard1.png", imgBoard)
+        cv2.imwrite(f"temp/CALCULATE1.png", imgBoard)
 
         kernel = np.ones((5,5), np.uint8)
         imgBoard = cv2.erode(imgBoard, kernel, iterations=2)
-        cv2.imwrite(f"temp/imgBoard2.png", imgBoard)
+        cv2.imwrite(f"temp/CALCULATE2.png", imgBoard)
         # display("temp/imgBoard2.png")
         imgBoard2 = cv2.cvtColor(imgBoard, cv2.COLOR_BGR2GRAY)
 
-        ret,thresh1 = cv2.threshold(imgBoard2,80,255,cv2.THRESH_BINARY)
-        cv2.imwrite("temp/imgBoard3.png", thresh1)
+        ret,thresh1 = cv2.threshold(imgBoard2,79,255,cv2.THRESH_BINARY)
+        cv2.imwrite("temp/CALCULATE3.png", thresh1)
         # display("temp/imgBoard3.png")
         contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(imgBoard, contours, -1, (0,255,0), 3)
+        if len(contours) > 0:
+            cv2.drawContours(imgBoard, contours, -1, (0,255,0), 3)
 
-        cv2.imwrite("temp/imgBoard4.png", imgBoard)
-        # display("temp/imgBoard4.png")
+            cv2.imwrite("temp/CALCULATE4.png", imgBoard)
+            # display("temp/imgBoard4.png")
 
-        simplifiedContours = [i[0][0] for i in contours]
-        minXDistance = 1000
-        for i in range(len(simplifiedContours)):
-            for j in range(i + 1, len(simplifiedContours)):
-                distanceFound = abs(simplifiedContours[i][0] - simplifiedContours[j][0])
-                if distanceFound < minXDistance and distanceFound>5:
-                    minXDistance = distanceFound
-        minYDistance = 1000
-        # print(minXDistance)
-        for i in range(len(simplifiedContours)):
-            for j in range(i + 1, len(simplifiedContours)):
-                distanceFound = abs(simplifiedContours[i][1] - simplifiedContours[j][1])
-                if distanceFound < minYDistance and distanceFound>5:
-                    minYDistance = distanceFound
-        # print(minYDistance)
-        distance = min(minXDistance, minYDistance)
-        minX = min([i[0][0][0] for i in contours])
-        # print("Minimum x found: " + str(minX))
-        maxX = max([i[0][0][0] for i in contours])
-        # print("Maximum x found: " + str(maxX))
-        minY = min([i[0][0][1] for i in contours])
-        # print("Minimum y found: " + str(minY))
-        maxY = max([i[0][0][1] for i in contours])
-        # print("Maximum y found: " + str(maxY))
+            simplifiedContours = [i[0][0] for i in contours]
+            minXDistance = 1000
+            for i in range(len(simplifiedContours)):
+                for j in range(i + 1, len(simplifiedContours)):
+                    distanceFound = abs(simplifiedContours[i][0] - simplifiedContours[j][0])
+                    if distanceFound < minXDistance and distanceFound>5:
+                        minXDistance = distanceFound
+            minYDistance = 1000
+            # print(minXDistance)
+            for i in range(len(simplifiedContours)):
+                for j in range(i + 1, len(simplifiedContours)):
+                    distanceFound = abs(simplifiedContours[i][1] - simplifiedContours[j][1])
+                    if distanceFound < minYDistance and distanceFound>5:
+                        minYDistance = distanceFound
+            # print(minYDistance)
+            distance = min(minXDistance, minYDistance)
+            minX = min([i[0][0][0] for i in contours])
+            # print("Minimum x found: " + str(minX))
+            maxX = max([i[0][0][0] for i in contours])
+            # print("Maximum x found: " + str(maxX))
+            minY = min([i[0][0][1] for i in contours])
+            # print("Minimum y found: " + str(minY))
+            maxY = max([i[0][0][1] for i in contours])
+            # print("Maximum y found: " + str(maxY))
 
-        # print(simplifiedContours)
+            # print(simplifiedContours)
 
-        hi = np.zeros((round((maxY-minY)/distance)+1,round((maxX-minX)/distance)+1))
-        for x in range(round((maxX-minX)/distance)+1):
-            for y in range(round((maxY-minY)/distance)+1):
-                xVal = minX + x*distance
-                yVal = minY + y*distance
-                for i in simplifiedContours:
-                    if math.sqrt((xVal-i[0])**2 + (yVal-i[1])**2) < 5:
-                        hi[y][x] = 1
-                        break
-        print(hi)
-        blocks.append(hi)
-
-    figure = blocks[2]
+            hi = np.zeros((round((maxY-minY)/distance)+1,round((maxX-minX)/distance)+1))
+            for x in range(round((maxX-minX)/distance)+1):
+                for y in range(round((maxY-minY)/distance)+1):
+                    xVal = minX + x*distance
+                    yVal = minY + y*distance
+                    for i in simplifiedContours:
+                        if math.sqrt((xVal-i[0])**2 + (yVal-i[1])**2) < 5:
+                            hi[y][x] = 1
+                            break
+            print(hi)
+            blocks.append(hi)
+            coordsUsed.append([hi, index])
 
     def permutations(blocks, fi):
         result = []
@@ -283,31 +284,54 @@ def calculate():
 
     allPermutations = permutations(blocks, 0)
     def tryOutAllMethods(board, permutation, fi):
+        
         workingPaths = []
         pathTaken = []
         blockIndex = 0
-        for _, rowToFit, colToFit in waysToFit(permutation[blockIndex], board):
-            board1, clearedRow = updateBoard(board, permutation[blockIndex], rowToFit, colToFit)
-            pathTaken.append([permutation[blockIndex], rowToFit, colToFit, clearedRow])
-            for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 1], board1):
-                board2, clearedRow = updateBoard(board1, permutation[blockIndex + 1], rowToFit, colToFit)
-                pathTaken.append([permutation[blockIndex + 1], rowToFit, colToFit, clearedRow])
-                for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 2], board2):
-                    board3, clearedRow = updateBoard(board2, permutation[blockIndex + 2], rowToFit, colToFit)
-                    pathTaken.append([permutation[blockIndex + 2], rowToFit, colToFit, clearedRow])
+        if len(permutation) == 3:
+            for _, rowToFit, colToFit in waysToFit(permutation[blockIndex], board):
+                board1, clearedRow = updateBoard(board, permutation[blockIndex], rowToFit, colToFit)
+                pathTaken.append([permutation[blockIndex], rowToFit, colToFit, clearedRow])
+                for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 1], board1):
+                    board2, clearedRow = updateBoard(board1, permutation[blockIndex + 1], rowToFit, colToFit)
+                    pathTaken.append([permutation[blockIndex + 1], rowToFit, colToFit, clearedRow])
+                    for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 2], board2):
+                        board3, clearedRow = updateBoard(board2, permutation[blockIndex + 2], rowToFit, colToFit)
+                        pathTaken.append([permutation[blockIndex + 2], rowToFit, colToFit, clearedRow])
+                        workingPaths.append(copy.deepcopy(pathTaken))
+                    pathTaken = [pathTaken[0]]
+                pathTaken = []
+            return workingPaths
+        elif len(permutation) == 2:
+            for _, rowToFit, colToFit in waysToFit(permutation[blockIndex], board):
+                board1, clearedRow = updateBoard(board, permutation[blockIndex], rowToFit, colToFit)
+                pathTaken.append([permutation[blockIndex], rowToFit, colToFit, clearedRow])
+                for _, rowToFit, colToFit in waysToFit(permutation[blockIndex + 1], board1):
+                    board2, clearedRow = updateBoard(board1, permutation[blockIndex + 1], rowToFit, colToFit)
+                    pathTaken.append([permutation[blockIndex + 1], rowToFit, colToFit, clearedRow])
                     workingPaths.append(copy.deepcopy(pathTaken))
-                pathTaken = [pathTaken[0]]
-            pathTaken = []
-        return workingPaths
+                    pathTaken = [pathTaken[0]]
+                pathTaken=[]
+            return workingPaths
+        elif len(permutation) == 1:
+            for _, rowToFit, colToFit in waysToFit(permutation[blockIndex], board):
+                board1, clearedRow = updateBoard(board, permutation[blockIndex], rowToFit, colToFit)
+                pathTaken.append([permutation[blockIndex], rowToFit, colToFit, clearedRow])
+                workingPaths.append(copy.deepcopy(pathTaken))
+                pathTaken = []
+            return workingPaths
+
+
     for index, i in enumerate(allPermutations):
         if index == 3:
             pass
         results = tryOutAllMethods(board, copy.deepcopy(allPermutations[index]), 0)
         if results:
-            return results[0], blocks
+            return results[0], blocks, coordsUsed
         # if len([i for i in results if i[2][3] == True]) > 0:
         #     return [i for i in results if i[2][3] == True][0]
         # else:
         #     pass
         #     # print(results)
 
+# output, blocks, blockNum = calculate()
