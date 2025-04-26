@@ -117,7 +117,7 @@ def calculate(blocksDone):
                 finalCornerCoords.append([sorted_points[group][row], sorted_points[group][row+1], sorted_points[group+1][row], sorted_points[group+1][row+1]])
             except:
                 pass
-    print(len(finalCornerCoords))
+    # print(len(finalCornerCoords))
 
     # count = 0
     # for coords in finalCornerCoords:
@@ -127,6 +127,7 @@ def calculate(blocksDone):
     #     count += 1
 
     os.system("screencapture temp/screen2.png")
+    # print("Screenshotting!!!")
     img = cv2.imread("/Users/sagewong/git/Block-Blast-Data-Analyst/temp/screen2.png", 1)
     cv2.imwrite(f"records/{blocksDone}.png", img)
     imgBoard = img[360:1190, 173:1000]
@@ -141,7 +142,7 @@ def calculate(blocksDone):
             bigList[count] = 0
         count += 1
     board = np.reshape(bigList, (8, -1))
-    print(board)
+    # print(board)
     blocks = []
     #, [1258, 1500, 468, 710], [1258,1500,733,961]
     screenCoords = [[1258, 1500, 215, 445], [1258, 1500, 468, 710],  [1258,1500,733,961]]
@@ -158,13 +159,13 @@ def calculate(blocksDone):
                     imgBoard[i, j] = [0, 0, 0]
         cv2.imwrite(f"temp/CALCULATE1.png", imgBoard)
 
-        kernel = np.ones((5,5), np.uint8)
+        kernel = np.ones((10,10), np.uint8)
         imgBoard = cv2.erode(imgBoard, kernel, iterations=2)
         cv2.imwrite(f"temp/CALCULATE2.png", imgBoard)
         # display("temp/imgBoard2.png")
         imgBoard2 = cv2.cvtColor(imgBoard, cv2.COLOR_BGR2GRAY)
 
-        ret,thresh1 = cv2.threshold(imgBoard2,79,255,cv2.THRESH_BINARY)
+        ret,thresh1 = cv2.threshold(imgBoard2,85,255,cv2.THRESH_BINARY)
         cv2.imwrite("temp/CALCULATE3.png", thresh1)
         # display("temp/imgBoard3.png")
         contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -211,7 +212,7 @@ def calculate(blocksDone):
                         if math.sqrt((xVal-i[0])**2 + (yVal-i[1])**2) < 5:
                             hi[y][x] = 1
                             break
-            print(hi)
+            # print(hi)
             blocks.append(hi)
             coordsUsed.append([hi, index, minX, minY, coords])
 
@@ -540,14 +541,60 @@ def bestOption(output, moveToReset, copyOfBoard):
                                       [1, 0, 0], 
                                       [1, 0, 0]]), np.array(board), True)
 
-        #                                                                                                                                                                                       Checks if a row clears                            Counts number of holes (Empty)        Num of spaces filled                Counts the number of holes (filled)   How many are two or one holes?                                                   Amount of standalone islands                                                     Rough edges count             
-        return numBRFit*10 + numBLFit*10 + numTRFit*10 + numTLFit*10 + num2x2Fit*2 + num3x3Fit*20 + num5x1Fit*3 + num1x5Fit*3 + num4x1Fit*0.8 + num3x1Fit*0.5 + num1x4Fit*0.8 + num1x3Fit*0.5 + sum([i[3] for i in output[:-1] if i[3] > 0])*30 - len(countHoles(board.copy(), 0))*20 - abs(np.count_nonzero(board==1))*60- len(countHoles(board.copy(), 1))*20 - len([i for i in countHoles(board.copy(), 1) if i == 2 or i == 1 or i == 3])*40 - len([i for i in countHoles(board.copy(), 0) if i == 2 or i == 1 or i == 3])*20 - roughEdgesScore(board.copy()) * 10 
+        #                                                                                                                                                                                       Checks if a row clears                            Counts number of holes (Empty)        Num of spaces filled                Counts the number of holes (filled)   How many are two or one holes?                                                   Amount of standalone islands                                                     Rough edges count                  favors later clears
+        return numBRFit*10 + numBLFit*10 + numTRFit*10 + numTLFit*10 + num2x2Fit*5 + num3x3Fit*20 + num5x1Fit*2 + num1x5Fit*2 + num4x1Fit*0.8 + num3x1Fit*0.5 + num1x4Fit*0.8 + num1x3Fit*0.5 + sum([i[3] for i in output[:-1] if i[3] > 0])*30 - len(countHoles(board.copy(), 0))*5 - abs(np.count_nonzero(board==1))*0.5- len(countHoles(board.copy(), 1))*10 - len([i for i in countHoles(board.copy(), 1) if i == 2 or i == 1 or i == 3])*20 - len([i for i in countHoles(board.copy(), 0) if i == 2 or i == 1 or i == 3])*20 - roughEdgesScore(board.copy()) * 0.5 + [index for index, i in enumerate(output[:-1]) if i[3]>0][0] if len([index for index, i in enumerate(output[:-1]) if i[3]>0]) > 0 else 0
+    def assignPointsVisualizer(board, output):
+        num2x2Fit = waysToFit(np.array([[1, 1], [1, 1]]), np.array(board), True)
+        num3x3Fit = waysToFit(np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]]), np.array(board), True)
+        num5x1Fit = waysToFit(np.array([[1], [1], [1], [1], [1]]), np.array(board), True)
+        num4x1Fit = waysToFit(np.array([[1], [1], [1], [1]]), np.array(board), True)
+        num3x1Fit = waysToFit(np.array([[1], [1], [1]]), np.array(board), True)
+
+        num1x5Fit = waysToFit(np.array([[1, 1, 1, 1, 1]]), np.array(board), True)
+        num1x4Fit = waysToFit(np.array([[1, 1, 1, 1]]), np.array(board), True)
+        num1x3Fit = waysToFit(np.array([[1, 1, 1]]), np.array(board), True)
+
+        numBRFit = waysToFit(np.array([[0, 0, 1], 
+                                      [0, 0, 1], 
+                                      [1, 1, 1]]), np.array(board), True)
+        numBLFit = waysToFit(np.array([[1, 0, 0], 
+                                      [1, 0, 0], 
+                                      [1, 1, 1]]), np.array(board), True)
+        numTRFit = waysToFit(np.array([[1, 1, 1], 
+                                      [0, 0, 1], 
+                                      [0, 0, 1]]), np.array(board), True)
+        numTLFit = waysToFit(np.array([[1, 1, 1], 
+                                      [1, 0, 0], 
+                                      [1, 0, 0]]), np.array(board), True)
+
+        #                                                                                                                                                                                       Checks if a row clears                            Counts number of holes (Empty)        Num of spaces filled                Counts the number of holes (filled)   How many are two or one holes?                                                   Amount of standalone islands                                                     Rough edges count                  favors later clears
+        print("Positives: ")
+        print(f"numBRFit*10: {numBRFit*10}")
+        print(f"numBLFit*10: {numBLFit*10}")
+        print(f"numTRFit*10: {numTRFit*10}")
+        print(f"numTLFit*10: {numTLFit*10}")
+        print(f"num2x2Fit*5: {num2x2Fit*5}")
+        print(f"num3x3Fit*20: {num3x3Fit*20}")
+        print(f"num5x1Fit*2: {num5x1Fit*2}")
+        print(f"num1x5Fit*2: {num1x5Fit*2}")
+        print(f"num4x1Fit*0.8: {num4x1Fit*0.8}")
+        print(f"num3x1Fit*0.5: {num3x1Fit*0.5}")
+        print(f"num1x4Fit*0.8 {num1x4Fit*0.8}")
+        print(f"num1x3Fit*0.5: {num1x3Fit*0.5}")
+        print(f"row clears*30: {sum([i[3] for i in output[:-1] if i[3] > 0])*30}")
+        print("Negatives: ")
+        print(f"numberOfIslands*5: {len(countHoles(board.copy(), 0))*5}")
+        print(f"filledSquares*0.5: {abs(np.count_nonzero(board==1))*0.5}")
+        print(f"numberOfIslands*10: {len(countHoles(board.copy(), 1))*10}")
+        print(f"numberOfFilledIslands*20: {len([i for i in countHoles(board.copy(), 1) if i == 2 or i == 1 or i == 3])*20}")
+        print(f"1or2or3Islands*20: {len([i for i in countHoles(board.copy(), 0) if i == 2 or i == 1 or i == 3])*20}")
+        print(f"roughEdgesScore* 0.5: {roughEdgesScore(board.copy()) * 0.5}")
     numberOfSolutions = sum(len(row) for row in output)
-    print(f"number of possible solutions: {numberOfSolutions}")
+    # print(f"number of possible solutions: {numberOfSolutions}")
     if numberOfSolutions > 50000:
         maxScore = 0
         bestArray = []
-        print("we doing it the easy way")
+        # print("we doing it the easy way")
         for i in range(len(output)):
             for j in range(100):
                 a = random.randint(0, len(output[i])-1)
@@ -556,6 +603,7 @@ def bestOption(output, moveToReset, copyOfBoard):
                     maxScore = score
                     bestArray = output[i][a]
         if bestArray != []:
+            assignPointsVisualizer(bestArray[-1], bestArray)
             return bestArray
 
     firstMoveClear = []
@@ -582,9 +630,9 @@ def bestOption(output, moveToReset, copyOfBoard):
     
     maxScore = -10000
     bestArray = []
-    print("MOVE TO RESET: " + str(moveToReset))
+    # print("MOVE TO RESET: " + str(moveToReset))
     if numberOfSolutions >= 5000 and np.count_nonzero(copyOfBoard==1) <= 40:
-        print("Playing offensively")
+        # print("Playing offensively")
         if moveToReset == 3:
             for i in thirdMoveClear:
                 score = assignPoints(i[-1], i)
@@ -593,6 +641,8 @@ def bestOption(output, moveToReset, copyOfBoard):
                     bestArray = i
             if bestArray != []:
                 print(f"Max score: {maxScore}")
+                assignPointsVisualizer(bestArray[-1], bestArray)
+
                 return bestArray
             for i in secondMoveClear:
                 score = assignPoints(i[-1], i)
@@ -601,6 +651,8 @@ def bestOption(output, moveToReset, copyOfBoard):
                     bestArray = i
             if bestArray != []:
                 print(f"Max score: {maxScore}")
+                assignPointsVisualizer(bestArray[-1], bestArray)
+
                 return bestArray
             for i in firstMoveClear:
                 score = assignPoints(i[-1], i)
@@ -609,6 +661,8 @@ def bestOption(output, moveToReset, copyOfBoard):
                     bestArray = i
             if bestArray != []:
                 print(f"Max score: {maxScore}")
+                assignPointsVisualizer(bestArray[-1], bestArray)
+
                 return bestArray
             return output[0][0]
         elif moveToReset == 2:
@@ -637,6 +691,10 @@ def bestOption(output, moveToReset, copyOfBoard):
             if goodOnesArray != []:
                 return goodOnesArray
             if bestArray != []:
+                print(f"Max score: {maxScore}")
+
+                assignPointsVisualizer(bestArray[-1], bestArray)
+
                 return bestArray
             for i in thirdMoveClear:
                 score = assignPoints(i[-1], i)
@@ -645,6 +703,8 @@ def bestOption(output, moveToReset, copyOfBoard):
                     bestArray = i
             if bestArray != []:
                 print(f"Max score: {maxScore}")
+                assignPointsVisualizer(bestArray[-1], bestArray)
+
                 return bestArray
             return output[0][0]
         elif moveToReset == 1:
@@ -662,6 +722,9 @@ def bestOption(output, moveToReset, copyOfBoard):
                     bestArray = i
             if bestArray != []:
                 print(f"Max score: {maxScore}")
+
+                assignPointsVisualizer(bestArray[-1], bestArray)
+
                 return bestArray
             for i in secondMoveClear:
                 score = assignPoints(i[-1], i)
@@ -672,13 +735,17 @@ def bestOption(output, moveToReset, copyOfBoard):
                 return bestArray
             return output[0][0]
     else:
-        print("Playing defensively")
+        # print("Playing defensively")
         for permutation in output:
             for i in permutation:
                 score = assignPoints(i[-1], i)
                 if score > maxScore:
                     maxScore = score
                     bestArray = i
+        print(f"Max score: {maxScore}")
+
+        assignPointsVisualizer(bestArray[-1], bestArray)
+
         return bestArray
     # print("Playing defensively")
     # for permutation in output:
