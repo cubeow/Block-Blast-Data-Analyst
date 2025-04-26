@@ -1,4 +1,4 @@
-import pyautogui
+import hii
 from multiprocess import Process, Manager, set_start_method, Value
 from ctypes import c_bool
 import cv2
@@ -236,30 +236,30 @@ def dragBlockTo(blockNumber, Xx, Yy):
     print(f"NOT HOLD min x: {newMinX}")
     print(f"NOT HOLD min y: {newMinY}")
 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
+    hii.moveTo(newMinX/2,newMinY/2)
 
-    pyautogui.click()
+    hii.click()
 
     time.sleep(0.1)
 
-    pyautogui.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
+    hii.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
     screenshot("temp/image1")
 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
-    pyautogui.mouseDown()
+    hii.moveTo(newMinX/2,newMinY/2)
+    hii.mouseDown()
     screenshot("temp/image05")
-    pyautogui.drag(0, 100, 0.2, button="left", mouseDownUp=False)
-    pyautogui.mouseUp()
+    hii.drag(0, 100, 0.2, button="left", mouseDownUp=False)
+    hii.mouseUp()
     initialHoldY, initialHoldX = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image05.png"))
     initialHoldX += 187
     initialHoldY += 380
     print(f"START COORDINATE: {initialHoldX}, {initialHoldY}")
 
-    pyautogui.mouseUp()
+    hii.mouseUp()
 
     time.sleep(0.1)
 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
+    hii.moveTo(newMinX/2,newMinY/2)
 
     row, col = compareTwoImages(cv2.imread("temp/image0.png"), cv2.imread("temp/image1.png"))
 
@@ -286,9 +286,9 @@ def dragBlockTo(blockNumber, Xx, Yy):
     XdistanceToTravel = (desiredPosition[0] - initialHoldX)*mouseXPerPixel
     YdistanceToTravel = (desiredPosition[1] - initialHoldY)*mouseYPerPixel
 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
+    hii.moveTo(newMinX/2,newMinY/2)
     time.sleep(0.1)
-    pyautogui.drag(-XdistanceToTravel, -YdistanceToTravel, 1, button="left")
-    pyautogui.mouseUp()
+    hii.drag(-XdistanceToTravel, -YdistanceToTravel, 1, button="left")
+    hii.mouseUp()
 
 dragBlockTo(2, 3, 1)

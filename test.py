@@ -1,5 +1,5 @@
 import multiprocess.process
-import pyautogui
+import hii
 import multiprocess
 import cv2
 import os
@@ -209,15 +209,15 @@ def move(start_event):
     newMinY = minY+screenCoord[0]
 
     # Drags it 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
-    pyautogui.click()
+    hii.moveTo(newMinX/2,newMinY/2)
+    hii.click()
     start_event.set()
-    pyautogui.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
+    hii.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
 
     # Drags it a second time
-    pyautogui.moveTo(newMinX/2,newMinY/2)
+    hii.moveTo(newMinX/2,newMinY/2)
     start_event.set()
-    pyautogui.dragTo(newMinX/2-2*mouseDist, newMinY/2-2*mouseDist, 1, button="left")
+    hii.dragTo(newMinX/2-2*mouseDist, newMinY/2-2*mouseDist, 1, button="left")
 
 def screenshot(start_event, filePath, waitingTime):
     start_event.wait()
@@ -287,6 +287,6 @@ if __name__ == "__main__":
 
 
 
-    pyautogui.moveTo(newMinX/2,newMinY/2)
+    hii.moveTo(newMinX/2,newMinY/2)
     time.sleep(0.5)
-    pyautogui.drag(YdistanceToTravel, XdistanceToTravel, 1, button="left")
+    hii.drag(YdistanceToTravel, XdistanceToTravel, 1, button="left")

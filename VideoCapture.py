@@ -1,4 +1,4 @@
-import pyautogui
+import hii
 from multiprocess import Process, Manager, set_start_method, Value
 from ctypes import c_bool
 import cv2
@@ -201,13 +201,13 @@ def videoCapture(shared_data, fileName):
 def calibrate(minX, minY, screenCoord, mouseDist, click, shared_data):
     newMinX = minX+screenCoord[2]
     newMinY = minY+screenCoord[0]
-    pyautogui.moveTo(newMinX/2,newMinY/2)
+    hii.moveTo(newMinX/2,newMinY/2)
     if click:
-        pyautogui.click()
+        hii.click()
 
     time.sleep(0.1)
 
-    pyautogui.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
+    hii.dragTo(newMinX/2-mouseDist, newMinY/2-mouseDist, 1, button="left")
     shared_data.mouseHolding = not shared_data.mouseHolding
 
 def screenshot(filePath):
